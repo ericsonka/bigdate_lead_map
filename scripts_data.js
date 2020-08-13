@@ -401,29 +401,38 @@ function handleImportDataFile(datFile) {
     reader.onload = readerEvent => {
         let encryptedStr = readerEvent.target.result; // this is the content!
 
-        let password = prompt('Enter secret key to import');
-
-
-        let decryptedJson = CryptoJS.AES.decrypt(encryptedStr, password).toString(CryptoJS.enc.Utf8);
-
-        try{
-            let allImportedData = JSON.parse(decryptedJson);
-
-            localStorage.clear();
-            for(var key in allImportedData){
-                localStorage[key] = allImportedData[key];
+        showPasswordDialog(function (isSave, password) {
+            if (!isSave) {
+                return;
             }
 
-            alert('Import Successful.')
+            if (!password) {
+                return;
+            }
 
-            setTimeout(function () {
-                location.href = location.href;
-            }, 200);
-        }
-        catch (e) {
-            console.log(e)
-            alert('Import Failed. Wrong password')
-        }
+            try{
+
+                let decryptedJson = CryptoJS.AES.decrypt(encryptedStr, password).toString(CryptoJS.enc.Utf8);
+
+                let allImportedData = JSON.parse(decryptedJson);
+
+                localStorage.clear();
+                for(var key in allImportedData){
+                    localStorage[key] = allImportedData[key];
+                }
+
+                alert('Import Successful.')
+
+                setTimeout(function () {
+                    location.href = location.href;
+                }, 200);
+            }
+            catch (e) {
+                console.log(e)
+                alert('Import Failed. Wrong password')
+            }
+
+        });
 
 
 
@@ -432,24 +441,27 @@ function handleImportDataFile(datFile) {
 }
 
 function showExportDataPopup() {
-    let password = prompt('Enter secret key to export');
+    showPasswordDialog(function (isSave, password) {
+        if (!isSave) {
+            return;
+        }
 
-    if(!password){
-        return;
-    }
+        if (!password) {
+            return;
+        }
+        let exportObj = {};
+        for (let key in localStorage) {
+            exportObj[key] = localStorage[key];
+        }
 
-    let exportObj = {};
-    for(let key in localStorage){
-        exportObj[key] = localStorage[key];
-    }
+        let allData = JSON.stringify(exportObj);
 
-    let allData = JSON.stringify(exportObj);
-
-    let encrypted = CryptoJS.AES.encrypt(allData, password);
+        let encrypted = CryptoJS.AES.encrypt(allData, password);
 
 
-    let blob = new Blob([encrypted], {type: "text/plain;charset=utf-8"});
-    saveAs(blob, "export__"+ new Date().toLocaleString() + '___'+ new Date().getTime() +".dat");
+        let blob = new Blob([encrypted], {type: "text/plain;charset=utf-8"});
+        saveAs(blob, "export__" + new Date().toLocaleString() + '___' + new Date().getTime() + ".dat");
+    });
 }
 
 

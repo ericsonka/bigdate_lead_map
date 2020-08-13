@@ -86,3 +86,25 @@ function copyTextToClipboard(text) {
 
 
 
+
+
+globalElements.dialogForPassword = $( "#dialogForPassword" );
+globalElements.dialogForPasswordInputElement = globalElements.dialogForPassword.find( "input[type=\"password\"]" );
+
+function showPasswordDialog(callback){
+    globalElements.dialogForPassword.get(0).showModal();
+    globalElements.dialogForPassword.data('callback', callback);
+}
+
+function closePasswordDialog(isSave){
+    if(isSave){
+        if(!globalElements.dialogForPasswordInputElement.val()){
+            return
+        }
+    }
+
+    globalElements.dialogForPassword.get(0).close();
+    globalElements.dialogForPassword.data('callback')(isSave, globalElements.dialogForPasswordInputElement.val());
+}
+
+
