@@ -98,6 +98,9 @@ function loadOverallDatabase() {
                 }
 
                 if(!personInfo['LOCATION (LAT & LONG)']){
+                    personInfo['LOCATION (LAT & LONG)'] = personInfo['LOCATION'];
+                }
+                if(!personInfo['LOCATION (LAT & LONG)']){
                     console.log('skipping', personInfo);
                     return;
                 }
