@@ -97,6 +97,11 @@ function loadOverallDatabase() {
                     }
                 }
 
+                if(!personInfo['LOCATION (LAT & LONG)']){
+                    console.log('skipping', personInfo);
+                    return;
+                }
+
                 let policeStationId = personInfo['Police Station'].trim();
                 if(!allPoliceStationsMap[policeStationId]){
                     allPoliceStationsMap[policeStationId] = {
