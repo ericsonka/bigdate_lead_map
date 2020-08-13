@@ -75,7 +75,9 @@ function doAddInfoToMap() {
 
     });
 
-
+    setTimeout(function () {
+        initializeAllPolygonsFromDb();
+    }, 1000);
 }
 
 function refreshAnalysisText() {
@@ -225,9 +227,9 @@ function toggleRectangleArea() {
 
     let initialPos = googleMapInstance.getCenter()
     let finalPos = calculatePositionWithDistance(initialPos.lat(), initialPos.lng(), rectangleInstanceSize);
-    console.log(initialPos);
-    console.log(finalPos);
-    console.log(rectangleInstanceSize);
+    // console.log(initialPos);
+    // console.log(finalPos);
+    // console.log(rectangleInstanceSize);
 
     var bounds = new google.maps.LatLngBounds(
         initialPos,
@@ -278,6 +280,7 @@ function setToAddPolygonMode() {
                 allPolygons[polygonId] = poly;
                 window._latestPoly = poly;
                 poly.__firstMarker = marker;
+                savePolygonInfoToDb(poly);
 
                 poly.addListener("click", () => {
                     showInfoWindowForPolygon(poly);
@@ -287,9 +290,68 @@ function setToAddPolygonMode() {
         }
         google.maps.event.addListener(marker, 'drag', function (dragEvent) {
             poly.getPath().setAt(markerIndex, dragEvent.latLng);
+            savePolygonInfoToDb(poly);
         });
         poly.getPath().push(clickEvent.latLng);
     });
+}
+
+function savePolygonInfoToDb(poly) {
+    let polyInfo = {
+        pathArray : poly.getPath().getArray(),
+        id : poly.__id,
+        displayName : poly.__displayName || 'Polygon'
+    };
+    let json = JSON.stringify(polyInfo);
+    localStorage['polygon__' + poly.__id] = json;
+}
+
+function initializeAllPolygonsFromDb() {
+    for(let key in localStorage){
+        if(!key.startsWith('polygon__')){
+            continue;
+        }
+
+        addPolygonFromJson(JSON.parse(localStorage[key]));
+    }
+}
+
+function addPolygonFromJson(obj) {
+    let markersArr = [];
+    let map = googleMapInstance;
+
+    let tempPoly = new google.maps.Polyline({ map: map, path: [], strokeColor: "#FF0000", strokeOpacity: 1.0, strokeWeight: 2 });
+
+    for (let markerIndex = 0; markerIndex < obj.pathArray.length; markerIndex++) {
+        // var isFirstMarker = markerIndex === 0;
+        let marker = new google.maps.Marker({ map: map, position: new google.maps.LatLng(obj.pathArray[markerIndex]), draggable: true });
+        markersArr.push(marker);
+        tempPoly.getPath().push(marker.getPosition());
+    }
+
+
+    let poly = new google.maps.Polygon({ map: googleMapInstance, path: tempPoly.getPath(), strokeColor: "#FF0000", strokeOpacity: 0.8, strokeWeight: 2, fillColor: "#FF0000", fillOpacity: 0.35 });
+
+    for (let markerIndex = 0; markerIndex < obj.pathArray.length; markerIndex++) {
+        google.maps.event.addListener(markersArr[markerIndex], 'drag', function (dragEvent) {
+            poly.getPath().setAt(markerIndex, dragEvent.latLng);
+            savePolygonInfoToDb(poly);
+        });
+    }
+
+    tempPoly.setMap(null);
+
+    poly.__firstMarker = markersArr[0];
+    poly.__id = obj.id;
+    poly.__displayName = obj.displayName;
+    allPolygons[obj.id] = poly;
+    window._latestPoly = poly;
+
+    poly.addListener("click", () => {
+        showInfoWindowForPolygon(poly);
+        window.selectedPolygon = poly;
+    });
+
 }
 
 function deletePolygon(polygonId){
@@ -297,6 +359,7 @@ function deletePolygon(polygonId){
     if(polygon.__infoWindow){
         polygon.__infoWindow.close()
     }
+    delete localStorage['polygon__' + polygonId];
     polygon.setMap(null);
 }
 
@@ -304,7 +367,7 @@ function polygonInfoWindowNameChanged(polygonId, newName){
     // let element = $('.content[data-polygon-id="'+polygonId+'"]');
     let polygon = allPolygons[polygonId];
     polygon.__displayName = newName; //element.val();
-    console.log(newName, polygonId)
+    savePolygonInfoToDb(polygon);
 }
 
 function showInfoWindowForPolygon(polygon){
