@@ -234,12 +234,8 @@ body.pc .play-button.green {
 
     <script src="https://ajax.googleapis.com/ajax/libs/jquery/3.3.1/jquery.min.js"></script>
     <script src="https://polyfill.io/v3/polyfill.min.js?features=default"></script>
-    <script
-        src="https://maps.googleapis.com/maps/api/js?key=AIzaSyCD654IP_GApjd3zyt1QKz9K8MpxMoyxVg&callback=iMap">
-    </script>
+    <script src="https://maps.googleapis.com/maps/api/js?key=AIzaSyCD654IP_GApjd3zyt1QKz9K8MpxMoyxVg&callback=iMap"></script>
 
-
-    <textarea id="txtGoogleMapLinks" placeholder="Paste data from excel here" rows="10" cols="100"></textarea>
 
     <br />
     <br />
@@ -266,17 +262,29 @@ body.pc .play-button.green {
     <br />
     <button id="btnCopyResult" class="play-button green">Copy Addresses</button>
 
+    <script type="text/javascript" >
+
+        fetch('./data/ekm_tcr_invitation_makers.json')
+            .then(function(res){
+                return res.json()
+            })
+            .then(function(data){
+                console.log('data', data)
+            });
+
+    </script>
+
     <script type="text/javascript">
-        let tempValue = ``;
+        // let tempValue = ``;
 
 
         let btnCopyResult = $('#btnCopyResult');
         let progressDisplay = $('#progressDisplay');
-        let txtGoogleMapLinks = $('#txtGoogleMapLinks');
-        let tblParsedGoogleMapCordinates = $('#tblParsedGoogleMapCordinates');
-        let tbodyParsedGoogleMapCordinates = tblParsedGoogleMapCordinates.find('tbody');
+        // let txtGoogleMapLinks = $('#txtGoogleMapLinks');
+        // let tblParsedGoogleMapCordinates = $('#tblParsedGoogleMapCordinates');
+        // let tbodyParsedGoogleMapCordinates = tblParsedGoogleMapCordinates.find('tbody');
 
-        txtGoogleMapLinks.val(tempValue);
+        // txtGoogleMapLinks.val(tempValue);
 		
 		tbodyParsedGoogleMapCordinates.on('click', 'tr', function () {
 			let trElement = $(this);
@@ -328,7 +336,7 @@ body.pc .play-button.green {
             var geocoder = new google.maps.Geocoder;
 
             if (!tbodyParsedGoogleMapCordinates.children('[data-waiting]').length) {
-                btnCopyResult.fadeIn();
+                btnC    opyResult.fadeIn();
                 return;
             }
 

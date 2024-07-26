@@ -27,10 +27,9 @@ function doAddInfoToMap() {
         }
 
         let label = personInfo['Sl No.'];
-        let imageUrl = 'https://mt.google.com/vt/icon/name=icons/onion/SHARED-mymaps-container-bg_4x.png,icons/onion/SHARED-mymaps-container_4x.png,icons/onion/1512-bank-dollar_4x.png&highlight=ff000000,673AB7,ff000000&scale=1.0';
-        if(personInfo.__isPrimary){
-            // label = 'P';
-            imageUrl = 'https://mt.google.com/vt/icon/name=icons/onion/SHARED-mymaps-container-bg_4x.png,icons/onion/SHARED-mymaps-container_4x.png,icons/onion/1644-parking_4x.png&highlight=ff000000,F9A825,ff000000&scale=1.0';
+        let imageUrl = 'https://mt.google.com/vt/icon/name=icons/onion/SHARED-mymaps-container-bg_4x.png,icons/onion/SHARED-mymaps-container_4x.png,icons/onion/1644-parking_4x.png&highlight=ff000000,F9A825,ff000000&scale=1.0';
+        if(personInfo.is_hotlisted){
+            imageUrl = 'https://mt.google.com/vt/icon/name=icons/onion/SHARED-mymaps-container-bg_4x.png,icons/onion/SHARED-mymaps-container_4x.png,icons/onion/1512-bank-dollar_4x.png&highlight=ff000000,673AB7,ff000000&scale=1.0';
         }
 
         const personMarker = new google.maps.Marker({
@@ -45,7 +44,10 @@ function doAddInfoToMap() {
 
         let contentString =
             '<div id="content">' +
-            '<h1 id="firstHeading" class="firstHeading">'+ personInfo.__contactId +'</h1>' +
+            '<h1 id="firstHeading" class="firstHeading">'+ personInfo.display_name +'</h1>' +
+`
+ <a target="_blank" href="${personInfo.gbp_link}"><span>Open Link</span></a>
+` +
             '<div id="bodyContent">' +
             "<table class=\"markerBodyContentTable\">@bodyTableContent@</table>" +
             "</div>" +
@@ -82,19 +84,19 @@ function doAddInfoToMap() {
 
 function refreshAnalysisText() {
     let primaryContactsCount = filteredPersonInfos.filter(function (personInfo) {
-        return personInfo.__isPrimary;
+        return personInfo.is_hotlisted;
     }).length;
 
     let secondaryContactsCount = filteredPersonInfos.filter(function (personInfo) {
-        return personInfo.__isSecondary;
+        return !personInfo.is_hotlisted;
     }).length;
 
-    let highRiskContactsCount = filteredPersonInfos.filter(function (personInfo) {
-        return personInfo.__isHighRisk;
-    }).length;
+    // let highRiskContactsCount = filteredPersonInfos.filter(function (personInfo) {
+    //     return personInfo.__isHighRisk;
+    // }).length;
 
 
-    let displayText = `Primary : ${primaryContactsCount}, Secondary : ${secondaryContactsCount}, High Risk : ${highRiskContactsCount}`;
+    let displayText = `Hotlisted : ${primaryContactsCount}, Other : ${secondaryContactsCount}`;
 
 
 
@@ -102,7 +104,7 @@ function refreshAnalysisText() {
         let visibleRegion = rectangleInstance.getBounds();
 
         let primaryContactsCountInsideRect = filteredPersonInfos.filter(function (personInfo) {
-            if(personInfo.__isPrimary && personInfo.__marker){
+            if(personInfo.is_hotlisted && personInfo.__marker){
                 if(visibleRegion.contains( personInfo.__marker.getPosition() )){
                     return true;
                 }
@@ -111,7 +113,7 @@ function refreshAnalysisText() {
         }).length;
 
         let secondaryContactsCountInsideRect = filteredPersonInfos.filter(function (personInfo) {
-            if(personInfo.__isSecondary && personInfo.__marker){
+            if(!personInfo.is_hotlisted && personInfo.__marker){
                 if(visibleRegion.contains( personInfo.__marker.getPosition() )){
                     return true;
                 }
@@ -119,16 +121,7 @@ function refreshAnalysisText() {
             return false;
         }).length;
 
-        let highRiskContactsCountInsideRect = filteredPersonInfos.filter(function (personInfo) {
-            if(personInfo.__isHighRisk && personInfo.__marker){
-                if(visibleRegion.contains( personInfo.__marker.getPosition() )){
-                    return true;
-                }
-            }
-            return false;
-        }).length;
-
-        displayText += `<span style="display: inline-block;margin-left: 10px;"> [ Rectangle = Primary : ${primaryContactsCountInsideRect}, Secondary : ${secondaryContactsCountInsideRect}, High Risk : ${highRiskContactsCountInsideRect} ] </span>`;
+        displayText += `<span style="display: inline-block;margin-left: 10px;"> [ Rectangle = Hotlisted : ${primaryContactsCountInsideRect}, Other : ${secondaryContactsCountInsideRect} ] </span>`;
     }
 
     setAnalysisDisplayText(displayText);
@@ -196,7 +189,7 @@ function calculatePositionWithDistance(lat, lng, distanceRequiredInMeters) {
 
 
 let rectangleInstance;
-let rectangleInstanceSize = 1000;
+let rectangleInstanceSize = 5000;
 function updateRectangleAreaSize(newValueStr) {
     rectangleInstanceSize = parseInt(newValueStr);
     toggleRectangleArea();
@@ -387,7 +380,7 @@ function showInfoWindowForPolygon(polygon){
 
 
     let primaryContactsCountInsideRect = filteredPersonInfos.filter(function (personInfo) {
-        if(personInfo.__isPrimary && personInfo.__marker){
+        if(personInfo.is_hotlisted && personInfo.__marker){
             if(visibleRegion.contains( personInfo.__marker.getPosition() )){
                 return true;
             }
@@ -396,7 +389,7 @@ function showInfoWindowForPolygon(polygon){
     }).length;
 
     let secondaryContactsCountInsideRect = filteredPersonInfos.filter(function (personInfo) {
-        if(personInfo.__isSecondary && personInfo.__marker){
+        if(!personInfo.is_hotlisted && personInfo.__marker){
             if(visibleRegion.contains( personInfo.__marker.getPosition() )){
                 return true;
             }
@@ -404,19 +397,11 @@ function showInfoWindowForPolygon(polygon){
         return false;
     }).length;
 
-    let highRiskContactsCountInsideRect = filteredPersonInfos.filter(function (personInfo) {
-        if(personInfo.__isHighRisk && personInfo.__marker){
-            if(visibleRegion.contains( personInfo.__marker.getPosition() )){
-                return true;
-            }
-        }
-        return false;
-    }).length;
 
     let bodyContentArr = [];
-    bodyContentArr.push(`<tr><td><b>Primary</b></td><td>${primaryContactsCountInsideRect}</td></tr>`);
-    bodyContentArr.push(`<tr><td><b>Secondary</b></td><td>${secondaryContactsCountInsideRect}</td></tr>`);
-    bodyContentArr.push(`<tr><td><b>High Risk</b></td><td>${highRiskContactsCountInsideRect}</td></tr>`);
+    bodyContentArr.push(`<tr><td><b>Hotlisted</b></td><td>${primaryContactsCountInsideRect}</td></tr>`);
+    bodyContentArr.push(`<tr><td><b>Others</b></td><td>${secondaryContactsCountInsideRect}</td></tr>`);
+    // bodyContentArr.push(`<tr><td><b>High Risk</b></td><td>${highRiskContactsCountInsideRect}</td></tr>`);
 
     contentString = contentString.replace('@bodyTableContent@', bodyContentArr.join('\n'));
 

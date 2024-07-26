@@ -40,20 +40,25 @@ function doFilterOverallData() {
 
     let filterHelperArr_2 = [];
     if(latestFilterConfig.riskType) {
-        if (latestFilterConfig.riskType === 'HIGH') {
-            filterHelperArr_1.forEach(function (personInfo) {
-                if (personInfo.__isHighRisk) {
-                    filterHelperArr_2.push(personInfo);
-                }
-            });
-        }
-        if (latestFilterConfig.riskType === 'LOW') {
-            filterHelperArr_1.forEach(function (personInfo) {
-                if (!personInfo.__isHighRisk) {
-                    filterHelperArr_2.push(personInfo);
-                }
-            });
-        }
+        filterHelperArr_1.forEach(function (personInfo) {
+            if (personInfo.category === latestFilterConfig.riskType) {
+                filterHelperArr_2.push(personInfo);
+            }
+        });
+        // if (latestFilterConfig.riskType === 'HIGH') {
+        //     filterHelperArr_1.forEach(function (personInfo) {
+        //         if (personInfo.__isHighRisk) {
+        //             filterHelperArr_2.push(personInfo);
+        //         }
+        //     });
+        // }
+        // if (latestFilterConfig.riskType === 'LOW') {
+        //     filterHelperArr_1.forEach(function (personInfo) {
+        //         if (!personInfo.__isHighRisk) {
+        //             filterHelperArr_2.push(personInfo);
+        //         }
+        //     });
+        // }
 
     }
     else{
@@ -66,7 +71,7 @@ function doFilterOverallData() {
 }
 
 
-function loadOverallDatabase() {
+function loadOverallDatabase(initial_leads_arr) {
     globalElements.analysisDisplayText = $('#progressDisplay');
     window.filteredPersonInfos = [];
     window.allPersonInfos = [];
@@ -74,76 +79,44 @@ function loadOverallDatabase() {
     window.allPoliceStationsMap = {};
 
     tbodyParsedGoogleMapCordinates.empty();
+    
+    for(const personInfo of initial_leads_arr){
+        console.log(personInfo)
 
-    let availableDates = getAvailableDatesWithData();
-    console.log(availableDates);
+        personInfo.is_hotlisted = personInfo.Hotlisted === '1' || personInfo.hotlist === '1';
+        personInfo.gbp_link = personInfo['GBP Link'];
+        personInfo.display_name = personInfo['business name'];
+        personInfo.district = personInfo.District;
+        personInfo.category = personInfo.Category || 'invitation';
+        personInfo.cordinates = personInfo.Cordinates || personInfo.CORDINATES || personInfo.coordinates ;
+        console.log("personInfo.cordinates",personInfo.Cordinates);
+        if(!personInfo.cordinates){
+            // console.log(`skipping : `, personInfo)
+            continue;
+        }
+        console.log();
+        personInfo.__latLng = personInfo.cordinates.trim();
+        console.log("personInfo.__latLng",personInfo.__latLng);
+        // personInfo.__isHighRisk = ((personInfo['Category of contact-(High risk/Low risk)'] || '')).trim().toUpperCase().indexOf('HIGH') != -1;
 
-    availableDates.forEach(function (dateStr ) {
-        let actualDate = new Date(moment(dateStr).valueOf());
-        // let actualDateStr = moment(actualDate).format('YYYY-MM-DD');
+        if(personInfo.__latLng){
+            personInfo.__latLng = personInfo.__latLng.trim();
+            personInfo.__latLng = {
+                lat: parseFloat(personInfo.__latLng.split(',')[0]),
+                lng: parseFloat(personInfo.__latLng.split(',')[1])
+            }
+        }
 
-        let allParsedCsvInfosOfDateArr = getCsvDataForDate(actualDate);
-        window._allParsedCsvInfosOfDateArr = allParsedCsvInfosOfDateArr;
+        let trElement = $(document.createElement('tr'));
+        trElement.html('<td>' + (tbodyParsedGoogleMapCordinates.children().length + 1) +
+            '</td>' + '<td>' + JSON.stringify(personInfo.__latLng) + '</td><td class="address"></td>');
+        trElement.attr('data-lat-lng', JSON.stringify(personInfo.__latLng));
+        trElement.attr('data-waiting', '1');
 
-        let previousParsedPersonInfo = null;
-
-        allParsedCsvInfosOfDateArr.forEach(function (parsedCsvInfo) {
-            let titleRow = parsedCsvInfo.meta.fields;
-            parsedCsvInfo.data.forEach(function (personInfo) {
-
-                if(previousParsedPersonInfo){
-                    if(personInfo['Contact ID'] === '"'){
-                        personInfo['Contact ID'] = previousParsedPersonInfo['Contact ID'];
-                    }
-                }
-
-                if(!personInfo['LOCATION (LAT & LONG)']){
-                    personInfo['LOCATION (LAT & LONG)'] = personInfo['LOCATION'];
-                }
-                if(!personInfo['LOCATION (LAT & LONG)']){
-                    console.log('skipping', personInfo);
-                    return;
-                }
-
-                let policeStationId = personInfo['Police Station'].trim();
-                if(!allPoliceStationsMap[policeStationId]){
-                    allPoliceStationsMap[policeStationId] = {
-                        id : policeStationId
-                    };
-                    allPoliceStations.push(allPoliceStationsMap[policeStationId]);
-                }
-
-                personInfo.__dateStr = dateStr;
-                personInfo.__contactId = personInfo['Contact ID'];
-                personInfo.__policeStation = allPoliceStationsMap[policeStationId];
-                personInfo.__latLng = personInfo['LOCATION (LAT & LONG)'];
-
-                personInfo.__isHighRisk = ((personInfo['Category of contact-(High risk/Low risk)'] || '')).trim().toUpperCase().indexOf('HIGH') != -1;
-
-                personInfo.__isPrimary = ((personInfo['Primary/Secondary'] || '')).trim().toUpperCase() === 'PRIMARY';
-                personInfo.__isSecondary = !personInfo.__isPrimary; //((personInfo['Primary/Secondary'] || '')).trim().toUpperCase() === 'SEC';
-
-                if(personInfo.__latLng){
-                    personInfo.__latLng = personInfo.__latLng.trim();
-                    personInfo.__latLng = {
-                        lat: parseFloat(personInfo.__latLng.split(',')[0]),
-                        lng: parseFloat(personInfo.__latLng.split(',')[1])
-                    }
-                }
-
-                let trElement = $(document.createElement('tr'));
-                trElement.html('<td>' + (tbodyParsedGoogleMapCordinates.children().length + 1) +
-                    '</td>' + '<td>' + JSON.stringify(personInfo.__latLng) + '</td><td class="address"></td>');
-                trElement.attr('data-lat-lng', JSON.stringify(personInfo.__latLng));
-                trElement.attr('data-waiting', '1');
-
-                tbodyParsedGoogleMapCordinates.append(trElement);
-                window.allPersonInfos.push(personInfo);
-                previousParsedPersonInfo = personInfo;
-            });
-        });
-
-    });
+        tbodyParsedGoogleMapCordinates.append(trElement);
+        window.allPersonInfos.push(personInfo);
+        // previousParsedPersonInfo = personInfo;
+    }
 
     console.log(window.allPersonInfos)
 
@@ -311,6 +284,51 @@ function showManageCsvFilesUI() {
             }
 
         });
+		
+		
+		globalElements.csvFileInput.on('change', function (e) {
+			let actualDate = globalElements.csvFileInput.data('date');
+			if(!e.target.files.length){
+				console.log('no csv selected');
+				return;
+			}
+
+			if(!actualDate){
+				if(e.target.files[0].name.endsWith('.dat')){
+					handleImportDataFile(e.target.files[0]);
+				}
+				return;
+			}
+
+			let selectedDate = globalElements.csvFileInput.data('date');
+			if(confirm('Save new data for : ' + selectedDate.toDateString())){
+				let numFilesRead = 0;
+				let allParsedCsvInfos = [];
+
+				for (let i = 0; i < e.target.files.length; i++) {
+					let csvFile = e.target.files[i];
+
+					let reader = new FileReader();
+					reader.readAsText(csvFile,'UTF-8');
+					reader.onload = readerEvent => {
+						numFilesRead++;
+						let csvStr = readerEvent.target.result.trim(); // this is the content!
+						console.log( selectedDate, csvStr );
+
+						let parsedCsvInfo = Papa.parse(csvStr, {header : true});
+						allParsedCsvInfos.push(parsedCsvInfo);
+
+						if(numFilesRead ===  e.target.files.length){
+							doParseDataAndSave(selectedDate, allParsedCsvInfos);
+						}
+					}
+				}
+
+
+			}
+
+
+		});		
     }
 
     console.log(datesArr)
@@ -342,49 +360,6 @@ function showNewCsvFilePicker(actualDate) {
     if(actualDate){
         globalElements.csvFileInput.data('date', actualDate);
     }
-    globalElements.csvFileInput.on('change', function (e) {
-        globalElements.csvFileInput.off('change');
-        if(!e.target.files.length){
-            console.log('no csv selected');
-            return;
-        }
-
-        if(!actualDate){
-            if(e.target.files[0].name.endsWith('.dat')){
-                handleImportDataFile(e.target.files[0]);
-            }
-            return;
-        }
-
-        let selectedDate = globalElements.csvFileInput.data('date');
-        if(confirm('Save new data for : ' + selectedDate.toDateString())){
-            let numFilesRead = 0;
-            let allParsedCsvInfos = [];
-
-            for (let i = 0; i < e.target.files.length; i++) {
-                let csvFile = e.target.files[i];
-
-                let reader = new FileReader();
-                reader.readAsText(csvFile,'UTF-8');
-                reader.onload = readerEvent => {
-                    numFilesRead++;
-                    let csvStr = readerEvent.target.result.trim(); // this is the content!
-                    console.log( selectedDate, csvStr );
-
-                    let parsedCsvInfo = Papa.parse(csvStr, {header : true});
-                    allParsedCsvInfos.push(parsedCsvInfo);
-
-                    if(numFilesRead ===  e.target.files.length){
-                        doParseDataAndSave(selectedDate, allParsedCsvInfos);
-                    }
-                }
-            }
-
-
-        }
-
-
-    });
 }
 
 

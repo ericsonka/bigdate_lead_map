@@ -7,7 +7,16 @@ function iMap() {
             return bounds;
         }
     }
-    loadOverallDatabase();
+
+
+    fetch('./data/ekm_tcr_invitation_makers.json')
+        .then(function(res){
+            return res.json()
+        })
+        .then(function(data){
+            console.log('data', data)
+            loadOverallDatabase(data);
+        });
 }
 
 
